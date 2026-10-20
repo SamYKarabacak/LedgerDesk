@@ -1,0 +1,10 @@
+LEDGERDESK 1.1.0 - GITHUB SOURCE PROJECT
+
+For normal Windows use, download LedgerDesk-v1.1.0-Windows-x64.zip,
+extract it, and open LedgerDesk.exe. It includes its own Python runtime.
+
+This project folder contains source, build tools, tests, and GitHub workflows.
+See GITHUB_SETUP.md for publishing and README.md for build instructions.
+
+To run the source, install Python 3.10+ with Tcl/Tk and use
+Run_From_Source_Windows.bat or python income_tracker.py.

@@ -1,0 +1,123 @@
+name: Build Windows app
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Data checks (${{ matrix.os }}, Python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+        python: ['3.10', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Run data and export checks
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+
+  build:
+    name: Build portable Windows x64 package
+    needs: tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-mingw-w64-x86-64 msitools
+      - name: Compile and package LedgerDesk.exe
+        run: python scripts/build_windows.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: LedgerDesk-Windows-x64
+          path: |
+            dist/LedgerDesk-v*-Windows-x64.zip
+            dist/LedgerDesk-v*-Windows-x64.zip.sha256
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 30
+
+  windows-check:
+    name: Test the packaged EXE on Windows
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: LedgerDesk-Windows-x64
+          path: downloads
+      - name: Run EXE from a path with spaces and Unicode
+        shell: pwsh
+        run: |
+          $archive = (Get-ChildItem downloads/LedgerDesk-v*-Windows-x64.zip).FullName
+          $work = Join-Path $env:RUNNER_TEMP 'LedgerDesk portable test ç'
+          Expand-Archive -Path $archive -DestinationPath $work
+          $exe = Join-Path $work 'LedgerDesk/LedgerDesk.exe'
+          $report = Join-Path $work 'self-test-report.json'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--self-test-report', "`"$report`"") -PassThru
+          if (-not $process.WaitForExit(60000)) {
+            taskkill /PID $process.Id /T /F
+            throw 'The packaged EXE timed out.'
+          }
+          if ($process.ExitCode -ne 0) { throw "The packaged EXE exited with $($process.ExitCode)." }
+          if (-not (Test-Path $report)) { throw 'The EXE did not create its self-test report.' }
+          $result = Get-Content $report -Raw | ConvertFrom-Json
+          if ($result.status -ne 'passed') { throw (Get-Content $report -Raw) }
+          Get-Content $report
+
+  release:
+    name: Prepare a draft GitHub release
+    needs: [tests, windows-check]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v8
+        with:
+          name: LedgerDesk-Windows-x64
+          path: release-assets
+      - name: Verify the release tag
+        run: |
+          python - <<'PY'
+          import os
+          from income_tracker import VERSION
+          if os.environ['GITHUB_REF_NAME'] != 'v' + VERSION:
+              raise SystemExit('The release tag must match income_tracker.VERSION.')
+          PY
+      - name: Create draft release with the runnable application
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "A release already exists. The new build is available in Actions artifacts."
+          else
+            gh release create "$GITHUB_REF_NAME" release-assets/*.zip release-assets/*.sha256 \
+              --draft --verify-tag --title "LedgerDesk $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+          fi

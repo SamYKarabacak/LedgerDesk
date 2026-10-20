@@ -1,0 +1,14 @@
+{
+  "python_version": "3.14.8",
+  "architecture": "amd64",
+  "runtime": {
+    "url": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-amd64.zip",
+    "sha256": "4873947a8afc037846b180312b83c744a4146a851cfd316a75c3125a4d8299da"
+  },
+  "tkinter": {
+    "url": "https://www.python.org/ftp/python/3.14.8/amd64/tcltk.msi",
+    "sha256": "ba27c006fd142951af86413de7fe2ff76c96015128fa08f1070920b6d39ae658"
+  },
+  "upstream_manifest": "https://www.python.org/ftp/python/3.14.8/windows-3.14.8.json",
+  "release_page": "https://www.python.org/downloads/release/python-3148/"
+}

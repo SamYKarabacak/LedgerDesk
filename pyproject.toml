@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ledgerdesk"
+dynamic = ["version"]
+description = "An offline desktop income and expense tracker with separate currency ledgers."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{name = "SamYKar"}]
+dependencies = []
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Topic :: Office/Business :: Financial :: Accounting",
+  "Environment :: Win32 (MS Windows)",
+  "Environment :: X11 Applications",
+]
+
+[project.gui-scripts]
+ledgerdesk = "income_tracker:main"
+
+[tool.setuptools]
+py-modules = ["income_tracker"]
+
+[tool.setuptools.dynamic]
+version = {attr = "income_tracker.VERSION"}
