@@ -10,6 +10,8 @@ Tcl/Tk runtime: extract the ZIP and open **LedgerDesk.exe**.
 
 ## Download and run
 
+[Download the Windows app](https://github.com/SamYKarabacak/LedgerDesk/releases/download/v1.1.0/LedgerDesk-v1.1.0-Windows-x64.zip) · [Release notes](https://github.com/SamYKarabacak/LedgerDesk/releases/tag/v1.1.0)
+
 1. Open this repository's **Releases** page.
 2. Download **LedgerDesk-v1.1.0-Windows-x64.zip**.
 3. Extract the entire ZIP and double-click **LedgerDesk.exe**.
