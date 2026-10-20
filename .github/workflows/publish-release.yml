@@ -14,6 +14,9 @@ jobs:
     name: Verify the release ZIP on Windows
     runs-on: windows-2022
     timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@v7
         with:
@@ -21,10 +24,14 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: '3.14'
-      - name: Download the prepared ZIP and run its EXE
+      - uses: actions/download-artifact@v8
+        with:
+          name: LedgerDesk-Windows-x64
+          run-id: 39463188031
+          github-token: ${{ github.token }}
+          path: downloads
+      - name: Verify the prepared ZIP and run its EXE
         shell: python
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           import hashlib
           import json
@@ -36,13 +43,7 @@ jobs:
 
           folder = Path(os.environ["RUNNER_TEMP"]) / "LedgerDesk release check \u00e7"
           folder.mkdir(parents=True, exist_ok=True)
-          archive = folder / "LedgerDesk-v1.1.0-Windows-x64.zip"
-          repo = os.environ["GITHUB_REPOSITORY"]
-          with archive.open("wb") as output:
-              subprocess.run(
-                  ["gh", "api", f"repos/{repo}/releases/assets/659960726",
-                   "-H", "Accept: application/octet-stream"],
-                  stdout=output, check=True)
+          archive = Path("downloads/LedgerDesk-v1.1.0-Windows-x64.zip").resolve()
           expected = "57418ba6e0a50951ed93fba2523e77ee9e3d9ab15cf2d63b812d389bd9b36f0b"
           if hashlib.sha256(archive.read_bytes()).hexdigest() != expected:
               raise SystemExit("The release ZIP checksum does not match.")
