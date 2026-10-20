@@ -11,6 +11,7 @@ import sqlite3
 import subprocess
 import sys
 import tempfile
+from contextlib import closing
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import NamedTuple
@@ -280,7 +281,7 @@ class Ledger:
         handle, temporary = tempfile.mkstemp(prefix=".ledger-backup-", suffix=".sqlite3", dir=destination.parent)
         os.close(handle)
         try:
-            with sqlite3.connect(temporary) as copy:
+            with closing(sqlite3.connect(temporary)) as copy, copy:
                 self.db.backup(copy)
             os.replace(temporary, destination)
         finally:
@@ -300,7 +301,7 @@ class Ledger:
         if not Path(path).is_file():
             raise ValidationError("Select an existing LedgerDesk backup file.")
         try:
-            with sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True) as source:
+            with closing(sqlite3.connect(Path(path).resolve().as_uri() + "?mode=ro", uri=True)) as source:
                 if source.execute("PRAGMA integrity_check").fetchone()[0] != "ok":
                     raise ValidationError("This backup is damaged. Your current data has not been changed.")
                 if source.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
@@ -319,7 +320,7 @@ class Ledger:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
         safety = self.path.parent / "backups" / f"before-restore-{stamp}.sqlite3"
         self.backup(safety)
-        with sqlite3.connect(source_path.as_uri() + "?mode=ro", uri=True) as source:
+        with closing(sqlite3.connect(source_path.as_uri() + "?mode=ro", uri=True)) as source:
             source.backup(self.db)
         return safety
 

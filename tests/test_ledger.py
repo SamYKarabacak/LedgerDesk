@@ -1,5 +1,6 @@
 """Financial-data regression checks. Run with Python's built-in unittest."""
 import csv
+from contextlib import closing
 from datetime import date
 from pathlib import Path
 import sqlite3
@@ -140,7 +141,7 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(len(self.ledger.query(Filters("USD"))), 1)
         self.assertEqual(len(self.ledger.query(Filters("TRY"))), 1)
         self.assertEqual(self.ledger.query(Filters("EUR")), [])
-        with sqlite3.connect(safety) as old:
+        with closing(sqlite3.connect(safety)) as old:
             self.assertEqual(old.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 3)
         # The active connection remains usable after restore.
         self.ledger.save(record(currency="CHF"))
@@ -151,7 +152,7 @@ class LedgerTests(unittest.TestCase):
         broken = self.root / "not-a-database.sqlite3"
         broken.write_text("This is not SQLite.", encoding="utf-8")
         unrelated = self.root / "different.sqlite3"
-        with sqlite3.connect(unrelated) as db:
+        with closing(sqlite3.connect(unrelated)) as db, db:
             db.execute("CREATE TABLE unrelated (value TEXT)")
         for candidate in (broken, unrelated, self.root / "missing.sqlite3", self.path):
             with self.subTest(candidate=candidate.name):
@@ -172,7 +173,7 @@ class LedgerTests(unittest.TestCase):
         snapshot = self.ledger.auto_backup()
         self.ledger.save(record(currency="TRY"))
         self.assertEqual(self.ledger.auto_backup(), snapshot)
-        with sqlite3.connect(snapshot) as db:
+        with closing(sqlite3.connect(snapshot)) as db:
             self.assertEqual(db.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 1)
         self.assertEqual(len(self.ledger.query(Filters("TRY"))), 1)
 
@@ -192,14 +193,27 @@ class LedgerTests(unittest.TestCase):
         self.assertEqual(rows[0]["Description"], "'=HYPERLINK(\"bad\")")
         self.assertEqual(rows[0]["Account"], "'@account")
 
+    def test_backup_files_can_be_moved_after_validation_and_restore(self):
+        self.ledger.save(record())
+        backup = self.root / "backup.sqlite3"
+        moved = self.root / "moved.sqlite3"
+        self.ledger.backup(backup)
+        backup.replace(moved)
+        self.ledger.validate_backup(moved)
+        moved.replace(backup)
+        self.ledger.restore(backup)
+        backup.replace(moved)
+        self.assertTrue(moved.is_file())
+        self.assertEqual(len(self.ledger.query(Filters("USD"))), 1)
+
     def test_existing_unrelated_database_is_not_adopted(self):
         path = self.root / "unrelated.sqlite3"
-        with sqlite3.connect(path) as other:
+        with closing(sqlite3.connect(path)) as other, other:
             other.execute("CREATE TABLE documents (body TEXT)")
             other.execute("INSERT INTO documents VALUES ('keep me')")
         with self.assertRaises(ValidationError):
             Ledger(path)
-        with sqlite3.connect(path) as other:
+        with closing(sqlite3.connect(path)) as other:
             self.assertEqual(other.execute("SELECT body FROM documents").fetchone()[0], "keep me")
 
 
