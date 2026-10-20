@@ -56,7 +56,7 @@ to install the `ledgerdesk` GUI command.
 
 Open **Actions → Build Windows app → Run workflow**. The workflow runs data
 checks on Linux and Windows, bundles the official runtime, compiles a Windows
-launcher, and runs the actual EXE on a Windows runner. Download the ZIP and
+launcher, and tests the packaged EXE on a Windows runner. Download the ZIP and
 checksum from the completed run's **Artifacts**.
 
 On Ubuntu, the equivalent local build is:
@@ -71,12 +71,12 @@ The output is `dist/LedgerDesk-v1.1.0-Windows-x64.zip`. Runtime versions, URLs,
 and hashes are in [runtime.lock.json](packaging/windows/runtime.lock.json).
 Downloads are needed while building; the finished application works offline.
 
-## Publish on GitHub
+## Releases
 
-[GITHUB_SETUP.md](GITHUB_SETUP.md) explains uploading the project and attaching
-the Windows ZIP to a release. A matching version tag, such as `v1.1.0`, runs
-the workflow and prepares a **draft** release after Windows checks pass.
-Open the draft and publish it when ready.
+Windows downloads and checksums are attached to [GitHub releases](https://github.com/SamYKarabacak/LedgerDesk/releases).
+[GITHUB_SETUP.md](GITHUB_SETUP.md) covers building and publishing a new version.
+A version tag matching the source version starts the release workflow; it prepares
+a draft after the Windows checks pass.
 
 ## Verification
 
@@ -88,7 +88,7 @@ python income_tracker.py --self-test-report self-test-report.json
 The EXE supports the same `--self-test-report` argument. It opens a temporary
 GUI, checks persistence and exports, and writes JSON without touching your real
 ledger. Native Windows checks run in GitHub Actions. [VERIFICATION.md](VERIFICATION.md)
-records checks actually completed for this delivered package.
+lists the release checks and links to the Windows test reports.
 
 ## Credits and license
 

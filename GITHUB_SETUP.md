@@ -1,54 +1,54 @@
-# Put LedgerDesk on GitHub
+# Building and publishing LedgerDesk
 
-You have two deliverables: the source project and a ready-to-run Windows ZIP.
+The repository holds the source. Ready-to-run Windows packages and checksums
+are attached to [releases](https://github.com/SamYKarabacak/LedgerDesk/releases).
 
-## Upload the project
+## Work on the source
 
-1. Create an empty GitHub repository, for example **LedgerDesk**.
-2. Extract the source-project ZIP.
-3. Upload the contents of its **LedgerDesk** folder into the repository root.
-   Include **.github/workflows/build.yml** to install the build automation.
-   README.md should sit at the repository root.
-4. Commit the upload to main.
-
-With Git installed, run these commands in the project folder after replacing
-the URL with the empty repository's actual URL:
+Clone the repository and run it with Python 3.10+ and Tcl/Tk:
 
 ```sh
-git init -b main
-git add .
-git commit -m "Add LedgerDesk desktop application"
-git remote add origin https://github.com/YOUR_USERNAME/LedgerDesk.git
-git push -u origin main
+git clone https://github.com/SamYKarabacak/LedgerDesk.git
+cd LedgerDesk
+python income_tracker.py
 ```
 
-.gitignore excludes financial databases, CSVs, logs, build outputs, and the
-build cache from future commits.
+Use `python income_tracker.py --demo` for temporary sample records.
+`.gitignore` excludes databases, CSV exports, logs, build outputs, and the
+build cache. Check the files you are committing before pushing.
 
-## Make the app downloadable
-
-Open **Releases → Draft a new release**. Use tag `v1.1.0`, attach
-**LedgerDesk-v1.1.0-Windows-x64.zip** as a release asset, and publish when ready.
-Include its `.sha256` file if available. Visitors download the ZIP, extract it,
-and open **LedgerDesk.exe**. Share the whole ZIP with its runtime folders.
-
-The source project belongs under Code; the runnable Windows ZIP belongs in Releases.
-
-## Build future versions
-
-Open **Actions → Build Windows app → Run workflow**. After the build and EXE
-self-test pass, open the run and download **LedgerDesk-Windows-x64** from
-Artifacts. Inside is the application ZIP and checksum.
-
-For an automatic draft release:
+Run the source tests with:
 
 ```sh
-git tag v1.1.0
-git push origin v1.1.0
+python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-The tag must match VERSION in income_tracker.py. The workflow creates a draft
-after source tests and native Windows checks pass. If a release already
-exists, it leaves that release in place; the new build remains in Artifacts.
-The workflow uses GitHub's automatic token and requests write access only for
-creating a draft release. No personal access token is required.
+## Build a Windows package
+
+Open **Actions → Build Windows app → Run workflow**. The workflow runs the
+source tests on Linux and Windows, builds the portable package, and tests the
+packaged EXE on Windows.
+
+After the run passes, download **LedgerDesk-Windows-x64** from its Artifacts.
+It contains the application ZIP and its SHA-256 checksum. Extract the complete
+application ZIP and open `LedgerDesk.exe`; keep its `app` and `runtime`
+folders beside it.
+
+[VERIFICATION.md](VERIFICATION.md) records checks for the published 1.1.0 ZIP.
+A new build has its own workflow results and checksum.
+
+## Publish a new version
+
+1. Update `VERSION` in `income_tracker.py`, package metadata, release notes,
+   and documentation for the new version.
+2. Commit and push the changes.
+3. Create and push a new `vX.Y.Z` tag matching `VERSION`.
+4. Wait for the source tests, package build, and Windows EXE checks to pass.
+5. Review the draft release, its notes, ZIP, and checksum, then publish it.
+
+The workflow validates the tag before preparing a draft. If a release already
+exists for that tag, it leaves the release in place and keeps the new build
+in Actions artifacts.
+
+Release automation uses GitHub's built-in token. Write permission is limited
+to the draft-release job; no personal access token is required.
